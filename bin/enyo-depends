@@ -1,0 +1,206 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var program = require('commander');
+var request = require('request');
+var fs = require('fs');
+var path = require('path');
+var AdmZip = require('adm-zip');
+var semver = require('semver');
+var async = require('async');
+
+program.version('0.0.2');
+//TODO: uninstall
+//TODO: default install to init and create an init task that either creates enyo.json or reads it and loads the dependencies.
+program.option('i, install [lib]', 'Install Enyo Library', 'package');
+program.option('init', 'Initialize enyo-depends in an enyo app.', '');
+program.option('-e, --enyo [location]', 'Specify the location of EnyoJS.', 'enyo');
+program.option('--noenyo', 'Turns off checking for EnyoJS before performing any operations.');
+program.parse(process.argv);
+
+if(!fs.existsSync(program.enyo) && !program.noenyo){
+	console.log('');
+	console.log('We could not find EnyoJS in this folder.');
+	console.log('');
+	return;
+}
+
+//Default the enyo version to 2.0.0.
+var enyoVersion = '2.0.0';
+
+//Get the version of enyo installed:
+var enyoPackage = path.normalize(program.enyo + '/package.json');
+if(fs.existsSync(enyoPackage)){
+	var enyoPackageJson = fs.readFileSync(enyoPackage, 'utf8');
+	var penyo;
+	try{
+		penyo = JSON.parse(enyoPackageJson);
+	}catch(e){};
+	
+	if(penyo){
+		enyoVersion = penyo.version || '2.0.0';
+	}
+}else{
+	
+}
+
+if(program.install){
+	if(program.install === 'package'){
+		console.log('TODO: Install in a directory based on the enyo.json file.');
+	}else{
+		depends(program.install, false, '', function(){
+			process.exit();
+		});
+	}
+}else if(program.init){
+	init();
+}
+
+//Boilerplate enyo.json file:
+var bare = {
+	"name": "my-app",
+	"description": "A simple app using enyo and enyo-depends.",
+	"package": "package.js",
+	"source": "source",
+	"version": "1.0.0",
+	"dependencies": {
+	},
+	"engines": {
+		"enyo": enyoVersion
+	}
+}
+
+//Creates a barebones enyo.json file:
+function init(){
+	if(!fs.existsSync('./enyo.json')){
+		fs.writeFileSync('./enyo.json', JSON.stringify(bare, null, 4));
+	}
+};
+
+//Main dependency manager:
+function depends(install, recursive, alias, done){
+	
+	if(!recursive){
+		console.log('');
+		console.log('Installing: ' + install);
+	}else{
+		console.log('  └── Installing: ' + install);
+	}
+	
+	//Grab the raw name:
+	var name = install.split('/');
+	name = name[name.length-1];
+	
+	//TODO: Only if we detect url:
+	//name = name.split('.')[0];
+	
+	if(fs.existsSync('./lib/' + name + '/')){
+		//TODO Provide Alias Override
+		if(!recursive){
+			console.log('The library you are trying to install already exists.');
+			console.log('');
+		}else{
+			console.log('    Library "' + name + '" already exists.');
+		}
+		done();
+	}
+	
+	//TODO: Allow cli option to change branch.
+	var branch = 'master';
+	
+	//Get the zip file from github:
+	var fileUrl = 'https://github.com/' + install + '/archive/' + branch + '.zip';
+	var output = './lib/' + name + Math.round(Math.random() * 1000000000) + '.zip';
+	request({url: fileUrl, encoding: null}, function(err, resp, body) {
+		if(err) throw err;
+		
+		//Make sure we're getting something workable (i.e. a zip file);
+		var ts = body.toString();
+		if(ts.length < 5){
+			console.log('We could not find the package. Please make sure it was typed correctly.');
+			done();
+		}
+		
+		//Make the lib folder if it doesn't already exist:
+		if(!fs.existsSync('./lib/')){
+			fs.mkdirSync('./lib/');
+		}
+		//Write the zip file first:
+		fs.writeFile(output, body, function(err) {
+			if(err) throw err;
+			
+			//Set up zip reader:
+			var zip = new AdmZip(output);
+			
+			//Try to get dependencies:
+			var enyojson = zip.readAsText(name + '-' + branch + '/enyo.json');
+			var enyo;
+			try{
+				enyo = JSON.parse(enyojson);
+			}catch(e){};
+			
+			var finished = function(){
+				if(fs.existsSync('./lib/' + name + '/')){
+					fs.unlinkSync('./lib/' + name + '/');
+				}
+				//Extract the library:
+				zip.extractAllTo('./lib/', true);
+				//When pulling archives from github, they'll export as repo-branch. This renames the folder to just name.
+				fs.renameSync('./lib/' + name + '-' + branch + '/', './lib/' + name + '/');
+				fs.unlinkSync(output);
+			
+				//Make sure we have an enyo.json file in our project:
+				if(!recursive){
+					init();
+					var myjson = fs.readFileSync('./enyo.json', 'utf8');
+					try{
+						myjson = JSON.parse(myjson);
+						myjson.dependencies[name] = install;
+						fs.writeFileSync('./enyo.json', JSON.stringify(myjson, null, 4));
+					}catch(e){};
+					console.log('Library Successfully Installed');
+				}else{
+					console.log('    - Library Successfully Installed');
+					done();
+				}
+			}
+			
+			//It has an enyo.json file
+			if(enyojson && enyo){
+				//TODO: When enyo.json & package.js (or the main package as defined in enyo.json) exist, add it to the main package's depends.js.
+				
+				//First check engine version:
+				if(enyo.engines && enyo.engines.enyo && !semver.satisfies(enyoVersion, enyo.engines.enyo)){
+					console.log('    WARNING: Library ' + name + ' requires enyo ' + enyo.engines.enyo + ', but you are using ' + enyoVersion + '.');
+					console.log('    Library may behave unexpectedly.');
+				}
+				
+				if(Object.keys(enyo.dependencies) <= 0){
+					finished();
+				}else{
+					var series = [];
+					for(var x in enyo.dependencies){
+						if(enyo.dependencies.hasOwnProperty(x)){
+							(function(){
+								var s = "" + enyo.dependencies[x];
+								var j = "" + x;
+								series.push(function(callback){
+									console.log(s, j);
+									depends(s, true, j, callback);
+								});
+							})();
+						}
+					}
+					async.series(series, function(){
+						finished();
+					});
+				}
+			}else{
+				finished();
+			}
+		});
+	});
+};

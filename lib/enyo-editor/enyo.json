@@ -1,0 +1,13 @@
+{
+	"name": "editor",
+	"description": "A simple reusable ContentEditable Enyo component.",
+	"package": "package.js",
+	"version": "0.1.0",
+	"dependencies": {
+		"onyx": "enyojs/onyx",
+		"font-awesome": "FortAwesome/Font-Awesome"
+	},
+	"engines": {
+		"enyo": "2.2.0"
+	}
+}

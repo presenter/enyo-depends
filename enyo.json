@@ -1,0 +1,13 @@
+{
+    "name": "my-app",
+    "description": "A simple app using enyo and enyo-depends.",
+    "package": "package.js",
+    "source": "source",
+    "version": "1.0.0",
+    "dependencies": {
+        "enyo-editor": "presenter/enyo-editor"
+    },
+    "engines": {
+        "enyo": "2.0.0"
+    }
+}
