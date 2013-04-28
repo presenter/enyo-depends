@@ -1,0 +1,14 @@
+{
+	"name": "advanced-app",
+	"description": "An Enyo app that uses a non-standard configuration",
+	"version": "1.0.0",
+	"source": "scripts",
+	"enyo": "scripts/enyo",
+	"dependencies": {
+		"onyx": "enyojs/onyx",
+		"layout": "enyojs/layout"
+	},
+	"engines": {
+		"enyo": "2.x"
+	}
+}

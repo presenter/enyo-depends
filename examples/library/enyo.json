@@ -1,0 +1,12 @@
+{
+	"name": "library",
+	"description": "A simple Enyo library.",
+	"version": "1.0.0",
+	"package": "app.js",
+	"dependencies": {
+		"font-awesome": "FortAwesome/Font-Awesome"
+	},
+	"engines": {
+		"enyo": ">=2.1.0"
+	}
+}

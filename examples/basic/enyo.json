@@ -1,0 +1,13 @@
+{
+	"name": "my-app",
+	"description": "A simple Enyo app with enyo-depends.",
+	"version": "1.0.0",
+	"source": "source",
+	"dependencies": {
+		"onyx": "enyojs/onyx",
+		"layout": "enyojs/layout"
+	},
+	"engines": {
+		"enyo": "~2.2.0"
+	}
+}
