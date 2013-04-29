@@ -12,17 +12,19 @@ var AdmZip = require('adm-zip');
 var semver = require('semver');
 var async = require('async');
 
-program.version('0.0.2');
+program.version('0.0.3');
 //TODO: uninstall
 //TODO: default install to init and create an init task that either creates enyo.json or reads it and loads the dependencies.
-program.option('i, install [lib]', 'Install Enyo Library', 'package');
+program.option('install [username/repo@branch]', 'Install Enyo Library');
 program.option('init', 'Initialize enyo-depends in an enyo app.', '');
-program.option('-e, --enyo [location]', 'Specify the location of EnyoJS.', 'enyo');
-program.option('--noenyo', 'Turns off checking for EnyoJS before performing any operations.');
+program.option('--enyo [location]', 'Specify the location of EnyoJS.', 'enyo');
+program.option('--noenyo', 'Turns off checking for EnyoJS.');
+program.option('--nodepends', 'Turns off including library in dependencies.');
 program.parse(process.argv);
 
+console.log('');
+
 if(!fs.existsSync(program.enyo) && !program.noenyo){
-	console.log('');
 	console.log('We could not find EnyoJS in this folder.');
 	console.log('');
 	return;
@@ -47,16 +49,16 @@ if(fs.existsSync(enyoPackage)){
 	
 }
 
-if(program.install){
-	if(program.install === 'package'){
-		console.log('TODO: Install in a directory based on the enyo.json file.');
-	}else{
-		depends(program.install, false, '', function(){
-			process.exit();
-		});
-	}
+if(program.install && program.install !== true){
+	depends(program.install, false, '', function(){
+		process.exit();
+	});
 }else if(program.init){
-	init();
+	init(true);
+}else if(program.install === true){
+	console.log('TODO: Install deps');
+}else{
+	program.help();
 }
 
 //Boilerplate enyo.json file:
@@ -74,9 +76,16 @@ var bare = {
 }
 
 //Creates a barebones enyo.json file:
-function init(){
+function init(verbose){
 	if(!fs.existsSync('./enyo.json')){
 		fs.writeFileSync('./enyo.json', JSON.stringify(bare, null, 4));
+		if(verbose){
+			console.log('Created enyo.json file.');
+		}
+	}else{
+		if(verbose){
+			console.log('An enyo.json file already exists.');
+		}
 	}
 };
 
@@ -84,18 +93,21 @@ function init(){
 function depends(install, recursive, alias, done){
 	
 	if(!recursive){
-		console.log('');
 		console.log('Installing: ' + install);
 	}else{
 		console.log('  └── Installing: ' + install);
 	}
 	
+	var branch = 'master';
+	if(install.indexOf('@') > -1){
+		branch = install.split('@');
+		branch = branch[branch.length - 1];
+		install = install.substring(0, install.lastIndexOf('@'));
+	}
+	
 	//Grab the raw name:
 	var name = install.split('/');
 	name = name[name.length-1];
-	
-	//TODO: Only if we detect url:
-	//name = name.split('.')[0];
 	
 	if(fs.existsSync('./lib/' + name + '/')){
 		//TODO Provide Alias Override
@@ -108,9 +120,6 @@ function depends(install, recursive, alias, done){
 		done();
 	}
 	
-	//TODO: Allow cli option to change branch.
-	var branch = 'master';
-	
 	//Get the zip file from github:
 	var fileUrl = 'https://github.com/' + install + '/archive/' + branch + '.zip';
 	var output = './lib/' + name + Math.round(Math.random() * 1000000000) + '.zip';
@@ -119,7 +128,7 @@ function depends(install, recursive, alias, done){
 		
 		//Make sure we're getting something workable (i.e. a zip file);
 		var ts = body.toString();
-		if(ts.length < 5){
+		if(ts.length < 5 || resp.statusCode === 404 | resp.statusCode === 500){
 			console.log('We could not find the package. Please make sure it was typed correctly.');
 			done();
 		}
@@ -153,7 +162,7 @@ function depends(install, recursive, alias, done){
 				fs.unlinkSync(output);
 			
 				//Make sure we have an enyo.json file in our project:
-				if(!recursive){
+				if(!recursive && !program.nodepends){
 					init();
 					var myjson = fs.readFileSync('./enyo.json', 'utf8');
 					try{
