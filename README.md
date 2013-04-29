@@ -35,14 +35,14 @@ Below is an example of an application/library's enyo.json file.
 		}
 	}
 
-- *"name"* is the name of the application. This should be the same as your github repository's name. If you set a name different from your repo's name, then when installing the library it will install as that name.
-- *"description"* is a simple description of your application or library.
-- *"version"* is the version of your application or library. When running enyo-depends update, it will check this version to determine if an update is needed.
-- *"package"* is the location of your application's main package.js file. In bootplate, the main file is `source/package.js`. 
-- *"lib"* is the folder that you wish to install libraries to. By default, the folder is `lib`. Please note that if you set this in your enyo.json file that installing a library will not auto-include it in your package.js file.
-- *"enyo"* is the folder that holds the copy of Enyo used in your application. This defaults to `enyo/`
-- *"dependencies"* is an object that contains your application or library's dependencies. When installing a library with `enyo-depends install`, it will automatically add the dependency to the object. Each dependency is a key-value pair, where the key is the name of the library and the value is the partial path to the github repo. The key can also be used to create an alias, as the library will be installed under a folder with that name.
-- *"engines"* is an object that should include a key named `enyo`. The value is the version of Enyo that is required for your library or application. This will be checked against the local version of enyo when installing. Any semantic versioning string will work.
+- __"name"__ is the name of the application. This should be the same as your github repository's name. If you set a name different from your repo's name, then when installing the library it will install as that name.
+- __"description"__ is a simple description of your application or library.
+- __"version"__ is the version of your application or library. When running enyo-depends update, it will check this version to determine if an update is needed.
+- __"package"__ is the location of your application's main package.js file. In bootplate, the main file is `source/package.js`. 
+- __"lib"__ is the folder that you wish to install libraries to. By default, the folder is `lib`. Please note that if you set this in your enyo.json file that installing a library will not auto-include it in your package.js file.
+- __"enyo"__ is the folder that holds the copy of Enyo used in your application. This defaults to `enyo/`
+- __"dependencies"__ is an object that contains your application or library's dependencies. When installing a library with `enyo-depends install`, it will automatically add the dependency to the object. Each dependency is a key-value pair, where the key is the name of the library and the value is the partial path to the github repo. The key can also be used to create an alias, as the library will be installed under a folder with that name.
+- __"engines"__ is an object that should include a key named `enyo`. The value is the version of Enyo that is required for your library or application. This will be checked against the local version of enyo when installing. Any semantic versioning string will work.
 
 ##Using
 
