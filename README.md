@@ -59,7 +59,7 @@ If the installer detects an enyo.json file in the library, then it will also ins
 ###Options
 
 ####--enyo
-If you do not have the core Enyo files in a folder named "enyo", then you can specify the location of enyo using this option.
+If you do not have the core Enyo files in a folder named "enyo", then you can specify the location of enyo using this option. You may also specify the location of enyo in your enyo.json file.
 
 	enyo-depends install presenter/enyo-editor --enyo scripts/enyo
 
