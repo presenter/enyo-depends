@@ -2,7 +2,7 @@
 	"name": "advanced-app",
 	"description": "An Enyo app that uses a non-standard configuration",
 	"version": "1.0.0",
-	"source": "scripts",
+	"package": "scripts/depends.js",
 	"enyo": "scripts/enyo",
 	"dependencies": {
 		"onyx": "enyojs/onyx",

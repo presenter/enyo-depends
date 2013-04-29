@@ -12,6 +12,38 @@ Until enyo-depends is on npm, you can install it the following way:
 
 You may need to run npm install with sudo.
 
+##enyo.json
+
+One of the key ways that enyo-depends works is through an enyo.json file that is included in your application. Other developers may also leverage this file to make their libraries more compatible with enyo-depends. When installing a library, if enyo-depends detects an enyo.json file, it will automatically include the library in your main package.js file.
+
+You can also customize enyo.json to better fit your project, as by default enyo-depends assumes a file structure similar to bootplate.
+
+Below is an example of an application/library's enyo.json file.
+
+	{
+		"name": "my-app",
+		"description": "An Enyo application using enyo-depends.",
+		"version": "1.0.0",
+		"package": "source/package.js",
+		"lib": "lib/",
+		"enyo": "enyo/"
+		"dependencies": {
+			"enyo-editor": "presenter/enyo-editor@master"
+		},
+		"engines": {
+			"enyo": ">=2.1.0"
+		}
+	}
+
+- "name" is the name of the application. This should be the same as your github repository's name. If you set a name different from your repo's name, then when installing the library it will install as that name.
+- "description" is a simple description of your application or library.
+- "version" is the version of your application or library. When running enyo-depends update, it will check this version to determine if an update is needed.
+- "package" is the location of your application's main package.js file. In bootplate, the main file is `source/package.js`. 
+- "lib" is the folder that you wish to install libraries to. By default, the folder is `lib`. Please note that if you set this in your enyo.json file that installing a library will not auto-include it in your package.js file.
+- "enyo" is the folder that holds the copy of Enyo used in your application. This defaults to `enyo/`
+- "dependencies" is an object that contains your application or library's dependencies. When installing a library with `enyo-depends install`, it will automatically add the dependency to the object. Each dependency is a key-value pair, where the key is the name of the library and the value is the partial path to the github repo. The key can also be used to create an alias, as the library will be installed under a folder with that name.
+- "engines" is an object that should include a key named `enyo`. The value is the version of Enyo that is required for your library or application. This will be checked against the local version of enyo when installing. Any semantic versioning string will work.
+
 ##Using
 
 You can install EnyoJS libraries with enyo-depends very easily using the command line.
@@ -44,5 +76,3 @@ By default, installing a package adds it to your enyo.json file and includes it 
 ##Notes
 
 Please note that enyo-depends currently only supports libraries that are hosted on GitHub.
-
-The cli assumes that your application has a source folder with a package.js in it. You can override the location of the main package.js in the enyo.json file in your application.

@@ -51,9 +51,8 @@ if(fs.existsSync(enyoPackage)){
 var bare = {
 	"name": "my-app",
 	"description": "A simple app using enyo and enyo-depends.",
-	"package": "package.js",
-	"source": "source",
 	"version": "1.0.0",
+	"package": "source/package.js",
 	"dependencies": {
 	},
 	"engines": {
