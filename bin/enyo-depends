@@ -33,6 +33,20 @@ if(!fs.existsSync(program.enyo) && !program.noenyo){
 //Default the enyo version to 2.0.0.
 var enyoVersion = '2.0.0';
 
+//Boilerplate enyo.json file:
+var bare = {
+	"name": "my-app",
+	"description": "A simple app using enyo and enyo-depends.",
+	"package": "package.js",
+	"source": "source",
+	"version": "1.0.0",
+	"dependencies": {
+	},
+	"engines": {
+		"enyo": enyoVersion
+	}
+}
+
 //Get the version of enyo installed:
 var enyoPackage = path.normalize(program.enyo + '/package.json');
 if(fs.existsSync(enyoPackage)){
@@ -59,20 +73,6 @@ if(program.install && program.install !== true){
 	console.log('TODO: Install deps');
 }else{
 	program.help();
-}
-
-//Boilerplate enyo.json file:
-var bare = {
-	"name": "my-app",
-	"description": "A simple app using enyo and enyo-depends.",
-	"package": "package.js",
-	"source": "source",
-	"version": "1.0.0",
-	"dependencies": {
-	},
-	"engines": {
-		"enyo": enyoVersion
-	}
 }
 
 //Creates a barebones enyo.json file:
