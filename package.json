@@ -1,18 +1,20 @@
 {
   "name": "enyo-depends",
   "preferGlobal": true,
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Presenter <jordan@beapresenter.com>",
   "description": "A simple dependency manager for EnyoJS apps.",
   "bin": {
     "enyo-depends": "./bin/enyo-depends"
   },
   "dependencies": {
-    "commander": "1.1.1",
-    "semver": "1.1.4",
-    "adm-zip": "0.4.3",
-    "request": "2.20.0",
-    "async": "~0.2.7"
+    "commander": "~1.1.1",
+    "semver": "~1.1.4",
+    "adm-zip": "~0.4.3",
+    "request": "~2.20.0",
+    "async": "~0.2.7",
+    "fs-extra": "~0.6.0",
+    "underscore": "~1.4.4"
   },
   "engines": {
     "node": ">=0.8"

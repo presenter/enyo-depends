@@ -40,7 +40,7 @@ Below is an example of an application/library's enyo.json file.
 - __"version"__ is the version of your application or library. When running enyo-depends update, it will check this version to determine if an update is needed.
 - __"package"__ is the location of your application's main package.js file. In bootplate, the main file is `source/package.js`. 
 - __"lib"__ is the folder that you wish to install libraries to. By default, the folder is `lib/`. Please note that if you set this in your enyo.json file that installing a library will not auto-include it in your package.js file.
-- __"enyo"__ is the folder that holds the copy of Enyo used in your application. This defaults to `enyo/`
+- __"enyo"__ is the folder that holds the copy of Enyo used in your application. This defaults to `enyo/`, and can also be set using the --enyo flag when installing libraries.
 - __"dependencies"__ is an object that contains your application or library's dependencies. When installing a library with `enyo-depends install`, it will automatically add the dependency to the object. Each dependency is a key-value pair, where the key is the name of the library and the value is the partial path to the github repo. The key can also be used to create an alias, as the library will be installed under a folder with that name.
 - __"engines"__ is an object that should include a key named `enyo`. The value is the version of Enyo that is required for your library or application. This will be checked against the local version of enyo when installing. Any semantic versioning string will work.
 
@@ -56,19 +56,27 @@ First cd into the directory of your enyo application. You can then install a pac
 
 If the installer detects an enyo.json file in the library, then it will also install the libraries dependencies, and include all installed libraries in your app's package.js file.
 
-###Options
+###Uninstalling A Library
 
-####--enyo
+You can uninstall a library using the following command, where name is the same as the repo name (or the alias) used while installing.
+
+	enyo-depends uninstall name
+
+The uninstall command will also remove all of the libraries included by the library unless the library is included in your application's enyo.json file. Note that currently this command could inadvertantly uninstall libraries that other installs brought in. 
+
+##Options
+
+###--enyo
 If you do not have the core Enyo files in a folder named "enyo", then you can specify the location of enyo using this option. You may also specify the location of enyo in your enyo.json file.
 
 	enyo-depends install presenter/enyo-editor --enyo scripts/enyo
 
-####--noenyo
+###--noenyo
 For all commands, enyo-depends ensures that the directory has enyo installed. You can override this behavior by using the --noenyo option.
 
 	enyo-depends install presenter/enyo-editor --noenyo
 
-####--nodepends
+###--nodepends
 By default, installing a package adds it to your enyo.json file and includes it in your app's package.js file. Using this flag disables that behavior.
 
 	enyo-depends install presenter/enyo-editor --nodepends

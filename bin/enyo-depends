@@ -6,16 +6,16 @@
 
 var program = require('commander');
 var request = require('request');
-var fs = require('fs');
+var fs = require('fs-extra');
 var path = require('path');
 var AdmZip = require('adm-zip');
 var semver = require('semver');
 var async = require('async');
+var _ = require('underscore');
 
-program.version('0.0.3');
-//TODO: uninstall
-//TODO: default install to init and create an init task that either creates enyo.json or reads it and loads the dependencies.
+program.version('0.0.4');
 program.option('install [username/repo@branch]', 'Install Enyo Library');
+program.option('uninstall [name]', 'Uninstall Enyo Library', '');
 program.option('init', 'Initialize enyo-depends in an enyo app.', '');
 program.option('--enyo [location]', 'Specify the location of EnyoJS.', 'enyo');
 program.option('--noenyo', 'Turns off checking for EnyoJS.');
@@ -24,14 +24,35 @@ program.parse(process.argv);
 
 console.log('');
 
+//Default the enyo version to 2.0.0.
+var enyoVersion = '2.0.0';
+var lib = './lib';
+var myjson;
+
+function loadjson(){
+	if(fs.existsSync('./enyo.json')){
+		try{
+			myjson = JSON.parse(fs.readFileSync('./enyo.json', 'utf8'));
+		}catch(e){}
+	}
+}
+loadjson();
+
+if(myjson){
+	program.enyo = myjson.enyo || 'enyo';
+}
+
 if(!fs.existsSync(program.enyo) && !program.noenyo){
 	console.log('We could not find EnyoJS in this folder.');
 	console.log('');
 	return;
 }
 
-//Default the enyo version to 2.0.0.
-var enyoVersion = '2.0.0';
+if(myjson && myjson.lib){
+	lib = myjson.lib;
+}
+
+var pack = myjson.package || 'source/package.js';
 
 //Get the version of enyo installed:
 var enyoPackage = path.normalize(program.enyo + '/package.json');
@@ -53,8 +74,7 @@ var bare = {
 	"description": "A simple app using enyo and enyo-depends.",
 	"version": "1.0.0",
 	"package": "source/package.js",
-	"dependencies": {
-	},
+	"dependencies": {},
 	"engines": {
 		"enyo": enyoVersion
 	}
@@ -64,12 +84,63 @@ if(program.install && program.install !== true){
 	depends(program.install, false, '', function(){
 		process.exit();
 	});
+}else if (program.uninstall){
+	uninstall(program.uninstall);
 }else if(program.init){
 	init(true);
 }else if(program.install === true){
-	console.log('TODO: Install deps');
+	if(myjson && myjson.dependencies){
+		console.log('Installing Application Dependencies...');
+		_.each(myjson.dependencies, function(v, k){
+			depends(v, true, k, function(){
+				console.log('Application Dependencies Successfully Installed');
+				process.exit();
+			});
+		});
+	}else{
+		console.log('No enyo.json file found.');
+	}
 }else{
 	program.help();
+}
+
+//TODO: This needs some reworking. Maybe loop over the lib directory and when we spot an enyo.json file check for conflict to prevent accidental uninstalling common libraries. Either that or only have uninstall remove the main installed library by default and not its dependencies.
+function uninstall(uninstall){
+	
+	var name = uninstall;
+	
+	//Uninstall
+	var p = path.normalize(lib + '/' + name);
+	if(!fs.existsSync(p)){
+		console.log('Library is not installed.');
+	}else{
+		console.log('Uninstalling: ' + name);
+		var otherjson;
+		if(fs.existsSync(p + '/enyo.json')){
+			try{
+				otherjson = JSON.parse(fs.readFileSync(p+ '/enyo.json', 'utf8'));
+			}catch(e){}
+		}
+		if(otherjson && otherjson.dependencies){
+			var mine = _.values((myjson || {}).dependencies || {});
+			mine = _.map(mine, function(k){
+				return k.toLowerCase();
+			});
+			_.each(otherjson.dependencies, function(k, v){
+				if(mine.indexOf(k.toLowerCase()) <= -1){
+					console.log('  └── Uninstalling: ' + v);
+					fs.removeSync(lib + '/' + v);
+				}
+			});
+		}
+		//Remove Root Directory.
+		fs.removeSync(p);
+		if(myjson){
+			delete myjson.dependencies[name];
+			fs.writeFileSync('./enyo.json', JSON.stringify(myjson, null, 4));
+		}
+		console.log('Library uninstalled.');
+	}
 }
 
 //Creates a barebones enyo.json file:
@@ -106,7 +177,7 @@ function depends(install, recursive, alias, done){
 	var name = install.split('/');
 	name = name[name.length-1];
 	
-	if(fs.existsSync('./lib/' + name + '/')){
+	if(fs.existsSync('./' + lib + '/' + name + '/')){
 		//TODO Provide Alias Override
 		if(!recursive){
 			console.log('The library you are trying to install already exists.');
@@ -115,11 +186,12 @@ function depends(install, recursive, alias, done){
 			console.log('    Library "' + name + '" already exists.');
 		}
 		done();
+		return;
 	}
 	
-	//Get the zip file from github:
+	//Get the zip file from GitHub:
 	var fileUrl = 'https://github.com/' + install + '/archive/' + branch + '.zip';
-	var output = './lib/' + name + Math.round(Math.random() * 1000000000) + '.zip';
+	var output = './' + lib +'/' + name + Math.round(Math.random() * 1000000000) + '.zip';
 	request({url: fileUrl, encoding: null}, function(err, resp, body) {
 		if(err) throw err;
 		
@@ -128,11 +200,12 @@ function depends(install, recursive, alias, done){
 		if(ts.length < 5 || resp.statusCode === 404 | resp.statusCode === 500){
 			console.log('We could not find the package. Please make sure it was typed correctly.');
 			done();
+			return;
 		}
 		
 		//Make the lib folder if it doesn't already exist:
-		if(!fs.existsSync('./lib/')){
-			fs.mkdirSync('./lib/');
+		if(!fs.existsSync('./' + lib + '/')){
+			fs.mkdirSync('./' + lib + '/');
 		}
 		//Write the zip file first:
 		fs.writeFile(output, body, function(err) {
@@ -149,24 +222,21 @@ function depends(install, recursive, alias, done){
 			}catch(e){};
 			
 			var finished = function(){
-				if(fs.existsSync('./lib/' + name + '/')){
-					fs.unlinkSync('./lib/' + name + '/');
-				}
+				
 				//Extract the library:
-				zip.extractAllTo('./lib/', true);
+				zip.extractAllTo('./' + lib + '/', true);
 				//When pulling archives from github, they'll export as repo-branch. This renames the folder to just name.
-				fs.renameSync('./lib/' + name + '-' + branch + '/', './lib/' + name + '/');
+				fs.renameSync('./' + lib + '/' + name + '-' + branch + '/', './' + lib + '/' + name + '/');
 				fs.unlinkSync(output);
 			
 				//Make sure we have an enyo.json file in our project:
 				if(!recursive && !program.nodepends){
 					init();
-					var myjson = fs.readFileSync('./enyo.json', 'utf8');
-					try{
-						myjson = JSON.parse(myjson);
+					loadjson();
+					if(myjson){
 						myjson.dependencies[name] = install;
 						fs.writeFileSync('./enyo.json', JSON.stringify(myjson, null, 4));
-					}catch(e){};
+					}
 					console.log('Library Successfully Installed');
 				}else{
 					console.log('    - Library Successfully Installed');
@@ -174,9 +244,32 @@ function depends(install, recursive, alias, done){
 				}
 			}
 			
+			//Check to see if it's eligible for auto package.json inclusion. Anything in the enyojs repo is eligible, and anything with enyo.json is as well.
+			//TODO: If they set package in enyo.json to be something, change this to that:
+			if(!program.nodepends && (path.normalize(lib + '/') === 'lib/') && ((enyojson && enyo) || install.split('/')[0].toLowerCase() === 'enyojs')){
+				if(fs.existsSync(pack)){
+					var packagejs = fs.readFileSync(pack, 'utf8');
+					packagejsmin = packagejs.replace(/(\s|\r|\n|\t)/g, "");
+					//Basically, do we need a comma:
+					var left = packagejsmin.lastIndexOf('(');
+					var fullname;
+					if(packagejsmin.lastIndexOf(')') > (left + 1)){
+						fullname = '\t"$lib/' + name + '",';
+					}else{
+						fullname = '\n\t"$lib/' + name + '"\n';
+					}
+					var offset = 1;
+					if(packagejs.charAt(packagejs.lastIndexOf('(') + 1) === '\n'){
+						console.log('using 2');
+						offset = 2;
+					}
+					packagejs = packagejs.substring(0,left + offset) + fullname + packagejs.substring(left + 1);
+					fs.writeFileSync(pack, packagejs);
+				}
+			}
+			
 			//It has an enyo.json file
 			if(enyojson && enyo){
-				//TODO: When enyo.json & package.js (or the main package as defined in enyo.json) exist, add it to the main package's depends.js.
 				
 				//First check engine version:
 				if(enyo.engines && enyo.engines.enyo && !semver.satisfies(enyoVersion, enyo.engines.enyo)){
@@ -194,7 +287,6 @@ function depends(install, recursive, alias, done){
 								var s = "" + enyo.dependencies[x];
 								var j = "" + x;
 								series.push(function(callback){
-									console.log(s, j);
 									depends(s, true, j, callback);
 								});
 							})();
