@@ -20,20 +20,22 @@ You can also customize enyo.json to better fit your project, as by default enyo-
 
 Below is an example of an application/library's enyo.json file.
 
-	{
-		"name": "my-app",
-		"description": "An Enyo application using enyo-depends.",
-		"version": "1.0.0",
-		"package": "source/package.js",
-		"lib": "lib/",
-		"enyo": "enyo/"
-		"dependencies": {
-			"enyo-editor": "presenter/enyo-editor@master"
-		},
-		"engines": {
-			"enyo": ">=2.1.0"
-		}
+``` js
+{
+	"name": "my-app",
+	"description": "An Enyo application using enyo-depends.",
+	"version": "1.0.0",
+	"package": "source/package.js",
+	"lib": "lib/",
+	"enyo": "enyo/"
+	"dependencies": {
+		"enyo-editor": "presenter/enyo-editor@master"
+	},
+	"engines": {
+		"enyo": ">=2.1.0"
 	}
+}
+```
 
 - __"name"__ is the name of the application. This should be the same as your github repository's name. If you set a name different from your repo's name, then when installing the library it will install as that name.
 - __"description"__ is a simple description of your application or library.
@@ -65,6 +67,11 @@ You can uninstall a library using the following command, where name is the same 
 The uninstall command will also remove all of the libraries included by the library unless the library is included in your application's enyo.json file. Note that currently this command could inadvertantly uninstall libraries that other installs brought in. 
 
 ##Options
+
+###--alias
+If you wish to install a given library under a different name, you can use create an alias, which will simply install the library under a differently named folder. It will also use the same alias when adding the dependency to your enyo.json file.
+
+	enyo-depends install presenter/enyo-editor --alias presenter
 
 ###--enyo
 If you do not have the core Enyo files in a folder named "enyo", then you can specify the location of enyo using this option. You may also specify the location of enyo in your enyo.json file.

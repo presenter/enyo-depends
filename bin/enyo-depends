@@ -13,13 +13,14 @@ var semver = require('semver');
 var async = require('async');
 var _ = require('underscore');
 
-program.version('0.0.4');
-program.option('install [username/repo@branch]', 'Install Enyo Library');
-program.option('uninstall [name]', 'Uninstall Enyo Library', '');
-program.option('init', 'Initialize enyo-depends in an enyo app.', '');
-program.option('--enyo [location]', 'Specify the location of EnyoJS.', 'enyo');
-program.option('--noenyo', 'Turns off checking for EnyoJS.');
-program.option('--nodepends', 'Turns off including library in dependencies.');
+program.version('0.0.5');
+program.option('install [username/repo@branch]', 'Install an Enyo library');
+program.option('uninstall [name]', 'Uninstall an Enyo library', '');
+program.option('init', 'Initialize enyo-depends in an enyo app', '');
+program.option('--enyo [location]', 'Specify the location of Enyo', 'enyo');
+program.option('--alias [name]', 'Install library under given name')
+program.option('--noenyo', 'Turns off checking for Enyo');
+program.option('--nodepends', 'Turns off including library in dependencies');
 program.parse(process.argv);
 
 console.log('');
@@ -27,7 +28,7 @@ console.log('');
 //Default the enyo version to 2.0.0.
 var enyoVersion = '2.0.0';
 var lib = './lib';
-var myjson;
+var myjson = {};
 
 function loadjson(){
 	if(fs.existsSync('./enyo.json')){
@@ -81,7 +82,7 @@ var bare = {
 }
 
 if(program.install && program.install !== true){
-	depends(program.install, false, '', function(){
+	depends(program.install, false, program.alias, function(){
 		process.exit();
 	});
 }else if (program.uninstall){
@@ -177,13 +178,13 @@ function depends(install, recursive, alias, done){
 	var name = install.split('/');
 	name = name[name.length-1];
 	
-	if(fs.existsSync('./' + lib + '/' + name + '/')){
-		//TODO Provide Alias Override
+	var fname = alias || name;
+	
+	if(fs.existsSync('./' + lib + '/' + fname + '/')){
 		if(!recursive){
-			console.log('The library you are trying to install already exists.');
-			console.log('');
+			console.log('The library or alias you are trying to install already exists.');
 		}else{
-			console.log('    Library "' + name + '" already exists.');
+			console.log('    Library "' + fname + '" already exists.');
 		}
 		done();
 		return;
@@ -207,6 +208,7 @@ function depends(install, recursive, alias, done){
 		if(!fs.existsSync('./' + lib + '/')){
 			fs.mkdirSync('./' + lib + '/');
 		}
+		
 		//Write the zip file first:
 		fs.writeFile(output, body, function(err) {
 			if(err) throw err;
@@ -226,7 +228,7 @@ function depends(install, recursive, alias, done){
 				//Extract the library:
 				zip.extractAllTo('./' + lib + '/', true);
 				//When pulling archives from github, they'll export as repo-branch. This renames the folder to just name.
-				fs.renameSync('./' + lib + '/' + name + '-' + branch + '/', './' + lib + '/' + name + '/');
+				fs.renameSync('./' + lib + '/' + name + '-' + branch + '/', './' + lib + '/' + fname + '/');
 				fs.unlinkSync(output);
 			
 				//Make sure we have an enyo.json file in our project:
@@ -234,7 +236,7 @@ function depends(install, recursive, alias, done){
 					init();
 					loadjson();
 					if(myjson){
-						myjson.dependencies[name] = install;
+						myjson.dependencies[fname] = install;
 						fs.writeFileSync('./enyo.json', JSON.stringify(myjson, null, 4));
 					}
 					console.log('Library Successfully Installed');
@@ -245,24 +247,34 @@ function depends(install, recursive, alias, done){
 			}
 			
 			//Check to see if it's eligible for auto package.json inclusion. Anything in the enyojs repo is eligible, and anything with enyo.json is as well.
-			//TODO: If they set package in enyo.json to be something, change this to that:
+			//TODO: Check to see if the library is already included in packagejs.
+			//TODO: Remove on uninstall:
 			if(!program.nodepends && (path.normalize(lib + '/') === 'lib/') && ((enyojson && enyo) || install.split('/')[0].toLowerCase() === 'enyojs')){
 				if(fs.existsSync(pack)){
 					var packagejs = fs.readFileSync(pack, 'utf8');
 					packagejsmin = packagejs.replace(/(\s|\r|\n|\t)/g, "");
 					//Basically, do we need a comma:
 					var left = packagejsmin.lastIndexOf('(');
+					
+					//Let them set their own source file:
+					var packagename = fname;
+					if(enyo && enyo.package && enyo.package.replace('/', '') !== 'package.js'){
+						packagename = path.normalize(fname + '/' + enyo.package);
+					};
+					
 					var fullname;
 					if(packagejsmin.lastIndexOf(')') > (left + 1)){
-						fullname = '\t"$lib/' + name + '",';
+						fullname = '\t"$lib/' + packagename + '",';
 					}else{
-						fullname = '\n\t"$lib/' + name + '"\n';
+						fullname = '\n\t"$lib/' + packagename + '"\n';
 					}
+					
+					//Make things look pretty:
 					var offset = 1;
 					if(packagejs.charAt(packagejs.lastIndexOf('(') + 1) === '\n'){
-						console.log('using 2');
 						offset = 2;
 					}
+					
 					packagejs = packagejs.substring(0,left + offset) + fullname + packagejs.substring(left + 1);
 					fs.writeFileSync(pack, packagejs);
 				}
