@@ -18,7 +18,7 @@ program.option('install [username/repo@branch]', 'Install an Enyo library');
 program.option('uninstall [name]', 'Uninstall an Enyo library', '');
 program.option('init', 'Initialize enyo-depends in an enyo app', '');
 program.option('--enyo [location]', 'Specify the location of Enyo', 'enyo');
-program.option('--alias [name]', 'Install library under given name')
+program.option('--alias [name]', 'Install library under given name', '')
 program.option('--noenyo', 'Turns off checking for Enyo');
 program.option('--nodepends', 'Turns off including library in dependencies');
 program.parse(process.argv);
