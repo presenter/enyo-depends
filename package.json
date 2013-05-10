@@ -4,6 +4,10 @@
   "version": "0.0.5",
   "author": "Presenter <jordan@beapresenter.com>",
   "description": "A simple dependency manager for EnyoJS apps.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/presenter/enyo-depends.git"
+  },
   "bin": {
     "enyo-depends": "./bin/enyo-depends"
   },
