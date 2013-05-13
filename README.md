@@ -28,6 +28,12 @@ First cd into the directory of your enyo application. You can then install a pac
 
 If the installer detects an enyo.json file in the library, then it will also install the libraries dependencies, and include all installed libraries in your app's package.js file.
 
+###Updaing Libraries
+
+You can update all of your installed libraries by calling `update` from the command line. This will download the latest versions of all dependencies listed in your enyo.json file.
+
+	enyo-depends update
+
 ###Uninstalling A Library
 
 You can uninstall a library using the following command, where name is the same as the repo name (or the alias) used while installing.
@@ -35,6 +41,14 @@ You can uninstall a library using the following command, where name is the same 
 	enyo-depends uninstall name
 
 The uninstall command will also remove all of the libraries included by the library unless the library is included in your application's enyo.json file. Note that currently this command could inadvertantly uninstall libraries that other installs brought in.
+
+###Creating enyo.json
+
+You can have enyo-depends auto-generate an enyo.json file for you project. This will auto-detect the version of Enyo that you are using, and create a boilerplate enyo.json file.
+
+	enyo-depends init
+
+If you install packages without first creating an enyo.json file, then one will be automatically generated during the install process.
 
 ##enyo.json
 

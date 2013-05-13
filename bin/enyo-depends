@@ -13,9 +13,10 @@ var semver = require('semver');
 var async = require('async');
 var _ = require('underscore');
 
-program.version('0.0.5');
+program.version('0.0.6');
 program.option('install [username/repo@branch]', 'Install an Enyo library');
 program.option('uninstall [name]', 'Uninstall an Enyo library', '');
+program.option('update', 'Update libraries that you have installed.');
 program.option('init', 'Initialize enyo-depends in an enyo app', '');
 program.option('--enyo [location]', 'Specify the location of Enyo', 'enyo');
 program.option('--alias [name]', 'Install library under given name', '')
@@ -28,19 +29,28 @@ console.log('');
 //Default the enyo version to 2.0.0.
 var enyoVersion = '2.0.0';
 var lib = './lib';
-var myjson = {};
+var pack = 'source/package.js';
+var myjson;
 
 function loadjson(){
 	if(fs.existsSync('./enyo.json')){
 		try{
-			myjson = JSON.parse(fs.readFileSync('./enyo.json', 'utf8'));
-		}catch(e){}
+			myjson = JSON.parse(fs.readFileSync('./enyo.json', 'utf8')) || false;
+		}catch(e){
+			myjson = false;
+		}
 	}
 }
 loadjson();
 
-if(myjson){
+if(myjson && myjson.enyo){
 	program.enyo = myjson.enyo || 'enyo';
+}
+if(myjson && myjson.lib){
+	lib = myjson.lib;
+}
+if(myjson && myjson.package){
+	pack = myjson.package;
 }
 
 if(!fs.existsSync(program.enyo) && !program.noenyo){
@@ -48,12 +58,6 @@ if(!fs.existsSync(program.enyo) && !program.noenyo){
 	console.log('');
 	return;
 }
-
-if(myjson && myjson.lib){
-	lib = myjson.lib;
-}
-
-var pack = myjson.package || 'source/package.js';
 
 //Get the version of enyo installed:
 var enyoPackage = path.normalize(program.enyo + '/package.json');
@@ -87,16 +91,27 @@ if(program.install && program.install !== true){
 	});
 }else if (program.uninstall){
 	uninstall(program.uninstall);
+}else if(program.update){
+	update();
 }else if(program.init){
 	init(true);
 }else if(program.install === true){
 	if(myjson && myjson.dependencies){
-		console.log('Installing Application Dependencies...');
+		var series = [];
 		_.each(myjson.dependencies, function(v, k){
-			depends(v, true, k, function(){
-				console.log('Application Dependencies Successfully Installed');
-				process.exit();
-			});
+			(function(){
+				var s = "" + v;
+				var j = "" + k;
+				series.push(function(callback){
+					depends(s, true, j, function(){
+						callback();
+					});
+				});
+			})();
+		});
+		console.log('Installing application dependencies...');
+		async.series(series, function(){
+			console.log('Application dependencies installed.');
 		});
 	}else{
 		console.log('No enyo.json file found.');
@@ -136,7 +151,7 @@ function uninstall(uninstall){
 		}
 		//Remove Root Directory.
 		fs.removeSync(p);
-		if(myjson){
+		if(myjson && myjson.dependencies){
 			delete myjson.dependencies[name];
 			fs.writeFileSync('./enyo.json', JSON.stringify(myjson, null, 4));
 		}
@@ -158,8 +173,34 @@ function init(verbose){
 	}
 };
 
+//Updates libraries based on dependencies listed in enyo.json.
+function update(){
+	if(!myjson) {
+		console.log('No enyo.json file found.');
+	}else if(!myjson.dependencies){
+		console.log('All dependencies up-to-date.');
+	}else{
+		var series = [];
+		for(var x in myjson.dependencies){
+			(function(){
+				var j = "" + x;
+				var l = "" + myjson.dependencies[x];
+				series.push(function(callback){
+					depends(l, true, j, function(){
+						callback();
+					}, true);
+				});
+			})();
+		}
+		console.log('Updating application dependencies...');
+		async.series(series, function(){
+			console.log("Application dependencies updated.");
+		});
+	}
+}
+
 //Main dependency manager:
-function depends(install, recursive, alias, done){
+function depends(install, recursive, alias, done, upgrade){
 	
 	if(!recursive){
 		console.log('Installing: ' + install);
@@ -181,13 +222,17 @@ function depends(install, recursive, alias, done){
 	var fname = alias || name;
 	
 	if(fs.existsSync('./' + lib + '/' + fname + '/')){
-		if(!recursive){
-			console.log('The library or alias you are trying to install already exists.');
+		if(upgrade){
+			fs.removeSync('./' + lib + '/' + fname + '/');
 		}else{
-			console.log('    Library "' + fname + '" already exists.');
+			if(!recursive){
+				console.log('The library or alias you are trying to install already exists.');
+			}else{
+				console.log('    Library "' + fname + '" already exists.');
+			}
+			done();
+			return;
 		}
-		done();
-		return;
 	}
 	
 	//Get the zip file from GitHub:
@@ -236,6 +281,7 @@ function depends(install, recursive, alias, done){
 					init();
 					loadjson();
 					if(myjson){
+						myjson.dependencies = myjson.dependencies || {};
 						myjson.dependencies[fname] = install;
 						fs.writeFileSync('./enyo.json', JSON.stringify(myjson, null, 4));
 					}
@@ -286,7 +332,7 @@ function depends(install, recursive, alias, done){
 				
 				//First check engine version:
 				if(enyo.engines && enyo.engines.enyo && !semver.satisfies(enyoVersion, enyo.engines.enyo)){
-					console.log('    WARNING: Library ' + name + ' requires enyo ' + enyo.engines.enyo + ', but you are using ' + enyoVersion + '.');
+					console.log('    WARNING: Library ' + name + ' requires Enyo ' + enyo.engines.enyo + ', but you are using ' + enyoVersion + '.');
 					console.log('    Library may behave unexpectedly.');
 				}
 				
@@ -300,7 +346,7 @@ function depends(install, recursive, alias, done){
 								var s = "" + enyo.dependencies[x];
 								var j = "" + x;
 								series.push(function(callback){
-									depends(s, true, j, callback);
+									depends(s, true, j, callback, upgrade);
 								});
 							})();
 						}

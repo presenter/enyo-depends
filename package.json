@@ -1,7 +1,7 @@
 {
   "name": "enyo-depends",
   "preferGlobal": true,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "Presenter <jordan@beapresenter.com>",
   "description": "A simple dependency manager for EnyoJS apps.",
   "repository": {
