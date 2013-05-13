@@ -252,7 +252,8 @@ function depends(install, recursive, alias, done){
 			if(!program.nodepends && (path.normalize(lib + '/') === 'lib/') && ((enyojson && enyo) || install.split('/')[0].toLowerCase() === 'enyojs')){
 				if(fs.existsSync(pack)){
 					var packagejs = fs.readFileSync(pack, 'utf8');
-					packagejsmin = packagejs.replace(/(\s|\r|\n|\t)/g, "");
+					packagejsmin = packagejs.replace(/(\s|\r|\n|\t)/g, '');
+					packagejsmin = packagejsmin.replace(/(\/\*[\w\'\s\r\n\*]*\*\/)|(\/\/[\w\s\']*)|(\<![\-\-\s\w\>\/]*\>)/g, '');
 					//Basically, do we need a comma:
 					var left = packagejsmin.lastIndexOf('(');
 					
